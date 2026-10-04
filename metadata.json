@@ -1,0 +1,6 @@
+{
+  "name": "NGTC ERP — Enterprise Transport Management System",
+  "description": "Centralized enterprise operations and transport management system for NGTC Saudi Arabia covering fleet, contracts, HR, schools, logistics, and finance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
