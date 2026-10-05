@@ -22,6 +22,10 @@ import { contractsRouter } from './routes/contracts.js';
 import { tripsRouter } from './routes/trips.js';
 import { searchRouter } from './routes/search.js';
 import { seedRouter } from './routes/seed.js';
+import { employeesRouter } from './routes/employees.js';
+import { payrollRouter } from './routes/payroll.js';
+import { settingsRouter } from './routes/settings.js';
+import { rolesRouter } from './routes/roles.js';
 
 let dbInitPromise: Promise<void> | null = null;
 
@@ -102,6 +106,10 @@ v1Router.use('/vehicles', vehiclesRouter);
 v1Router.use('/drivers', driversRouter);
 v1Router.use('/contracts', contractsRouter);
 v1Router.use('/trips', tripsRouter);
+v1Router.use('/employees', employeesRouter);
+v1Router.use('/payroll', payrollRouter);
+v1Router.use('/settings', settingsRouter);
+v1Router.use('/roles', rolesRouter);
 v1Router.use('/search', searchRouter);
 v1Router.use('/seed', seedRouter);
 

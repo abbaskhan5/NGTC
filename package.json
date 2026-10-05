@@ -8,6 +8,7 @@
     "build": "vite build",
     "start": "tsx server.ts",
     "clean": "rm -rf dist server.js",
+    "seed:admin": "tsx scripts/seedSuperAdmin.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

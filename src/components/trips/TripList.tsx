@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Bus, Search, Filter, Play, CheckCircle2, AlertTriangle, Clock, MapPin } from 'lucide-react';
 import { api } from '../../services/api.js';
 import { Trip } from '../../types/index.js';
+import { useAuth } from '../../context/AuthContext.js';
 
 export const TripList: React.FC = () => {
+  const { can } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -144,32 +146,38 @@ export const TripList: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-end">
-                    {t.status === 'scheduled' && (
-                      <button
-                        onClick={() => handleUpdateStatus(t.id, 'running')}
-                        className="rounded border border-sky-500/30 bg-sky-950/60 px-2 py-1 text-xs font-semibold text-sky-400 hover:bg-sky-900"
-                      >
-                        Start Trip
-                      </button>
-                    )}
-                    {t.status === 'running' && (
-                      <button
-                        onClick={() => handleUpdateStatus(t.id, 'completed')}
-                        className="rounded border border-emerald-500/30 bg-emerald-950/60 px-2 py-1 text-xs font-semibold text-emerald-400 hover:bg-emerald-900"
-                      >
-                        Complete
-                      </button>
-                    )}
-                    {t.status === 'completed' && (
-                      <span className="text-[11px] text-slate-500 font-mono">Archived</span>
-                    )}
-                    {t.status === 'delayed' && (
-                      <button
-                        onClick={() => handleUpdateStatus(t.id, 'running')}
-                        className="rounded border border-amber-500/30 bg-amber-950/60 px-2 py-1 text-xs font-semibold text-amber-400 hover:bg-amber-900"
-                      >
-                        Resume
-                      </button>
+                    {!can('trips.update') ? (
+                      <span className="text-[11px] text-slate-500 font-mono">View Only</span>
+                    ) : (
+                      <>
+                        {t.status === 'scheduled' && (
+                          <button
+                            onClick={() => handleUpdateStatus(t.id, 'running')}
+                            className="rounded border border-sky-500/30 bg-sky-950/60 px-2 py-1 text-xs font-semibold text-sky-400 hover:bg-sky-900"
+                          >
+                            Start Trip
+                          </button>
+                        )}
+                        {t.status === 'running' && (
+                          <button
+                            onClick={() => handleUpdateStatus(t.id, 'completed')}
+                            className="rounded border border-emerald-500/30 bg-emerald-950/60 px-2 py-1 text-xs font-semibold text-emerald-400 hover:bg-emerald-900"
+                          >
+                            Complete
+                          </button>
+                        )}
+                        {t.status === 'completed' && (
+                          <span className="text-[11px] text-slate-500 font-mono">Archived</span>
+                        )}
+                        {t.status === 'delayed' && (
+                          <button
+                            onClick={() => handleUpdateStatus(t.id, 'running')}
+                            className="rounded border border-amber-500/30 bg-amber-950/60 px-2 py-1 text-xs font-semibold text-amber-400 hover:bg-amber-900"
+                          >
+                            Resume
+                          </button>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>

@@ -156,15 +156,21 @@ export async function seedDatabase(force = false): Promise<void> {
   await db.businessUnits.insertMany(businessUnits);
 
   // 4. Seed Users with Hashed Passwords
+  const adminName = process.env.SUPER_ADMIN_NAME || 'MR Abbas Khan';
+  const adminEmail = (process.env.SUPER_ADMIN_EMAIL || 'admin@ngtc.sa').toLowerCase().trim();
+  const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'password123';
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
   const devPasswordHash = await bcrypt.hash('password123', 10);
+
   const users = [
     {
       id: 'usr-admin',
       employeeId: 'NGTC-0001',
-      name: 'MR Abbas Khan',
-      email: 'admin@ngtc.sa',
+      name: adminName,
+      email: adminEmail,
       phone: '+966 50 123 4567',
-      passwordHash: devPasswordHash,
+      passwordHash: adminPasswordHash,
+      role: 'SUPER_ADMIN',
       roleId: 'role-super-admin',
       roleName: 'Super Admin',
       branchId: 'br-riyadh',
@@ -174,6 +180,24 @@ export async function seedDatabase(force = false): Promise<void> {
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
       lastLogin: new Date().toISOString(),
       createdAt: '2025-01-01T08:00:00.000Z',
+    },
+    {
+      id: 'usr-employee',
+      employeeId: 'NGTC-0050',
+      name: 'Fahad Al-Harbi (Staff)',
+      email: 'employee@ngtc.sa',
+      phone: '+966 50 777 8899',
+      passwordHash: devPasswordHash,
+      role: 'EMPLOYEE',
+      roleId: 'role-employee',
+      roleName: 'Employee (Read-Only)',
+      branchId: 'br-riyadh',
+      branchName: 'Riyadh Central HQ',
+      departmentId: 'Operations Support',
+      status: 'active',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      lastLogin: new Date().toISOString(),
+      createdAt: '2025-01-10T08:00:00.000Z',
     },
     {
       id: 'usr-gm',
@@ -890,4 +914,89 @@ export async function seedDatabase(force = false): Promise<void> {
     },
   ];
   await db.auditLogs.insertMany(auditLogs);
+
+  // 12. Employees Directory
+  const employees = [
+    {
+      id: 'emp-001',
+      employeeId: 'NGTC-0001',
+      name: adminName,
+      email: adminEmail,
+      phone: '+966 50 123 4567',
+      department: 'Executive Management',
+      jobTitle: 'Super Administrator',
+      branchId: 'br-riyadh',
+      branchName: 'Riyadh Central HQ',
+      status: 'active',
+      salarySAR: 35000,
+      hireDate: '2024-01-01',
+    },
+    {
+      id: 'emp-050',
+      employeeId: 'NGTC-0050',
+      name: 'Fahad Al-Harbi (Staff)',
+      email: 'employee@ngtc.sa',
+      phone: '+966 50 777 8899',
+      department: 'Operations Support',
+      jobTitle: 'Fleet Dispatch Clerk',
+      branchId: 'br-riyadh',
+      branchName: 'Riyadh Central HQ',
+      status: 'active',
+      salarySAR: 6800,
+      hireDate: '2025-02-01',
+    },
+    {
+      id: 'emp-051',
+      employeeId: 'NGTC-0051',
+      name: 'Sara Al-Ghamdi',
+      email: 'sara.g@ngtc.sa',
+      phone: '+966 54 111 2233',
+      department: 'Customer Relations',
+      jobTitle: 'Client Services Specialist',
+      branchId: 'br-riyadh',
+      branchName: 'Riyadh Central HQ',
+      status: 'active',
+      salarySAR: 7500,
+      hireDate: '2025-03-10',
+    },
+  ];
+  await db.employees.insertMany(employees);
+
+  // 13. Payroll Batches
+  const payrollRuns = [
+    {
+      id: 'pay-2026-09',
+      month: 'September 2026',
+      totalEmployees: 32,
+      totalAmountSAR: 268500,
+      status: 'approved',
+      approvedBy: adminName,
+      approvedAt: '2026-09-28T12:00:00.000Z',
+    },
+    {
+      id: 'pay-2026-10',
+      month: 'October 2026',
+      totalEmployees: 34,
+      totalAmountSAR: 284000,
+      status: 'pending_approval',
+    },
+  ];
+  await db.payroll.insertMany(payrollRuns);
+
+  // 14. Master Settings
+  await db.settings.insertOne({
+    id: 'system_settings',
+    companyName: 'National Group for Transportation & Contracting (NGTC)',
+    companyNameAr: 'المجموعة الوطنية للنقل والمقاولات',
+    vatNumber: '310294857200003',
+    commercialRegistration: '1010394857',
+    defaultCurrency: 'SAR',
+    vatRatePercent: 15,
+    telemetryRefreshIntervalSec: 15,
+    speedLimitWarningKmh: 100,
+    maintenanceAlertKm: 5000,
+    istimaraExpiryNoticeDays: 30,
+    mvpiExpiryNoticeDays: 30,
+    sessionTimeoutMinutes: 60,
+  });
 }

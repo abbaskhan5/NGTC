@@ -34,6 +34,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   const demoRoles = [
     { code: 'SUPER_ADMIN', label: 'Super Admin (All Access)', user: 'MR Abbas Khan' },
+    { code: 'EMPLOYEE', label: 'Employee (Read-Only Staff)', user: 'Fahad Al-Harbi' },
     { code: 'GENERAL_MANAGER', label: 'General Manager / CEO', user: 'Saad Al-Qahtani' },
     { code: 'FLEET_MANAGER', label: 'Fleet Manager', user: 'Eng. Tariq Al-Ghamdi' },
     { code: 'OPERATIONS_MANAGER', label: 'Operations Manager', user: 'Yousef Al-Harbi' },

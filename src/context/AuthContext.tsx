@@ -1,23 +1,41 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api.js';
-import { User } from '../types/index.js';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'SUPER_ADMIN' | 'EMPLOYEE' | string;
+  roleCode?: string;
+  roleName: string;
+  status: string;
+  employeeId?: string;
+  phone?: string;
+  branchId?: string;
+  branchName?: string;
+  departmentId?: string;
+  avatarUrl?: string;
+  lastLogin?: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
+  isSuperAdmin: boolean;
+  isEmployee: boolean;
   login: (email: string, password: string) => Promise<void>;
   switchDemoRole: (roleCode: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   can: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('ngtc_token'));
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -25,16 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initAuth = useCallback(async () => {
     const savedToken = localStorage.getItem('ngtc_token');
     if (!savedToken) {
-      // Default to logging in as Super Admin demo user on first visit if no token exists!
-      try {
-        const res = await api.login({ email: 'admin@ngtc.sa', password: 'password123' });
-        localStorage.setItem('ngtc_token', res.token);
-        setToken(res.token);
-        setUser(res.user);
-        setPermissions(res.permissions);
-      } catch (e) {
-        console.warn('Initial demo login fallback notice:', e);
-      }
       setIsLoading(false);
       return;
     }
@@ -42,20 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await api.getMe();
       setUser(res.user);
-      setPermissions(res.permissions);
+      setPermissions(res.permissions || []);
     } catch (err) {
-      console.error('Session restore failed, re-authenticating:', err);
-      try {
-        const res = await api.login({ email: 'admin@ngtc.sa', password: 'password123' });
-        localStorage.setItem('ngtc_token', res.token);
-        setToken(res.token);
-        setUser(res.user);
-        setPermissions(res.permissions);
-      } catch (fallbackErr) {
-        localStorage.removeItem('ngtc_token');
-        setToken(null);
-        setUser(null);
-      }
+      console.warn('Session verification failed, logging out:', err);
+      localStorage.removeItem('ngtc_token');
+      localStorage.removeItem('ngtc_refresh_token');
+      setToken(null);
+      setUser(null);
+      setPermissions([]);
     } finally {
       setIsLoading(false);
     }
@@ -69,10 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const res = await api.login({ email, password });
-      localStorage.setItem('ngtc_token', res.token);
-      setToken(res.token);
+      const authToken = res.accessToken || res.token;
+      localStorage.setItem('ngtc_token', authToken);
+      if (res.refreshToken) {
+        localStorage.setItem('ngtc_refresh_token', res.refreshToken);
+      }
+      setToken(authToken);
       setUser(res.user);
-      setPermissions(res.permissions);
+      setPermissions(res.permissions || []);
     } finally {
       setIsLoading(false);
     }
@@ -82,24 +88,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const res = await api.switchDemo(roleCode);
-      localStorage.setItem('ngtc_token', res.token);
-      setToken(res.token);
+      const authToken = res.accessToken || res.token;
+      localStorage.setItem('ngtc_token', authToken);
+      if (res.refreshToken) {
+        localStorage.setItem('ngtc_refresh_token', res.refreshToken);
+      }
+      setToken(authToken);
       setUser(res.user);
-      setPermissions(res.permissions);
+      setPermissions(res.permissions || []);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('ngtc_token');
-    setToken(null);
-    setUser(null);
-    setPermissions([]);
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch (e) {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('ngtc_token');
+      localStorage.removeItem('ngtc_refresh_token');
+      setToken(null);
+      setUser(null);
+      setPermissions([]);
+    }
   };
+
+  const isSuperAdmin = Boolean(
+    user &&
+      (user.role === 'SUPER_ADMIN' ||
+        user.roleCode === 'SUPER_ADMIN' ||
+        user.roleName === 'Super Admin' ||
+        permissions.includes('*'))
+  );
+
+  const isEmployee = Boolean(
+    user && (user.role === 'EMPLOYEE' || user.roleCode === 'EMPLOYEE' || (!isSuperAdmin && user.roleName?.includes('Employee')))
+  );
 
   const can = (permissionRequired: string): boolean => {
     if (!user) return false;
+    // Super Admin has unrestricted complete control
+    if (isSuperAdmin) return true;
     if (permissions.includes('*')) return true;
     if (permissions.includes(permissionRequired)) return true;
     const [res] = permissionRequired.split('.');
@@ -115,6 +146,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         permissions,
         isAuthenticated: !!token && !!user,
         isLoading,
+        isSuperAdmin,
+        isEmployee,
         login,
         switchDemoRole,
         logout,

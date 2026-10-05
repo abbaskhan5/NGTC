@@ -26,7 +26,21 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickDemo = async (roleCode: string) => {
+  const handleQuickDemo = async (roleCode: string, demoEmail?: string, demoPass?: string) => {
+    if (demoEmail && demoPass) {
+      setEmail(demoEmail);
+      setPassword(demoPass);
+      setLoading(true);
+      setError(null);
+      try {
+        await login(demoEmail, demoPass);
+      } catch (err: any) {
+        setError(err.message || 'Login failed');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -39,12 +53,10 @@ export const LoginPage: React.FC = () => {
   };
 
   const demoAccounts = [
-    { label: 'Super Admin', role: 'SUPER_ADMIN', email: 'admin@ngtc.sa', desc: 'Unrestricted enterprise control' },
-    { label: 'CEO / General Mgr', role: 'GENERAL_MANAGER', email: 'manager@ngtc.sa', desc: 'Executive KPI oversight' },
-    { label: 'Fleet Manager', role: 'FLEET_MANAGER', email: 'fleet@ngtc.sa', desc: 'Fleet maintenance & telemetry' },
-    { label: 'Operations Mgr', role: 'OPERATIONS_MANAGER', email: 'operations@ngtc.sa', desc: 'Trips & school dispatch' },
-    { label: 'Finance Manager', role: 'FINANCE_MANAGER', email: 'finance@ngtc.sa', desc: 'Client billing & P&L' },
-    { label: 'Field Driver', role: 'DRIVER', email: 'driver@ngtc.sa', desc: 'Captain route updates' },
+    { label: 'Super Admin', role: 'SUPER_ADMIN', email: 'admin@ngtc.sa', pass: 'password123', desc: 'Unrestricted enterprise control' },
+    { label: 'Employee (Read-Only)', role: 'EMPLOYEE', email: 'employee@ngtc.sa', pass: 'employee123', desc: 'View-only operations & dashboard' },
+    { label: 'CEO / General Mgr', role: 'GENERAL_MANAGER', email: 'manager@ngtc.sa', pass: 'password123', desc: 'Executive KPI oversight' },
+    { label: 'Fleet Manager', role: 'FLEET_MANAGER', email: 'fleet@ngtc.sa', pass: 'password123', desc: 'Fleet maintenance & telemetry' },
   ];
 
   return (
@@ -143,7 +155,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   key={acc.role}
                   type="button"
-                  onClick={() => handleQuickDemo(acc.role)}
+                  onClick={() => handleQuickDemo(acc.role, acc.email, acc.pass)}
                   disabled={loading}
                   className="p-2 rounded-lg border border-slate-800 bg-slate-950/60 hover:bg-slate-800 text-start transition-colors"
                 >

@@ -76,3 +76,112 @@ tripsRouter.post('/:id/status', requireAuth, requirePermission('trips.update'), 
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// POST /api/v1/trips
+tripsRouter.post('/', requireAuth, requirePermission('trips.create'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { routeName, vehicleId, driverId, scheduledStart, scheduledEnd } = req.body;
+    if (!routeName || !vehicleId || !driverId) {
+      res.status(400).json({ success: false, message: 'Route name, vehicle, and driver are required' });
+      return;
+    }
+
+    const vehicle = await db.vehicles.findById(vehicleId);
+    const driver = await db.drivers.findById(driverId);
+    const tripNum = `TRP-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const newTrip = await db.trips.insertOne({
+      id: `trp-${Date.now().toString(36)}`,
+      tripNumber: tripNum,
+      routeName,
+      vehicleId,
+      vehicleNumber: vehicle ? vehicle.vehicleNumber : 'BUS-1001',
+      driverId,
+      driverName: driver ? driver.name : 'Assigned Captain',
+      status: 'scheduled',
+      scheduledStart: scheduledStart || '06:30',
+      scheduledEnd: scheduledEnd || '07:45',
+      passengerCount: 45,
+      createdAt: new Date().toISOString(),
+    });
+
+    await recordAudit(
+      req,
+      'trips',
+      'CREATE_TRIP',
+      newTrip.id,
+      newTrip.tripNumber,
+      `Dispatched new trip ${newTrip.tripNumber} on route ${routeName}`
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Trip created successfully',
+      data: newTrip,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PUT /api/v1/trips/:id
+tripsRouter.put('/:id', requireAuth, requirePermission('trips.update'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const trip = await db.trips.findById(id);
+    if (!trip) {
+      res.status(404).json({ success: false, message: 'Trip not found' });
+      return;
+    }
+
+    const updated = await db.trips.updateOne({ id }, req.body);
+
+    await recordAudit(
+      req,
+      'trips',
+      'UPDATE_TRIP',
+      id,
+      trip.tripNumber,
+      `Updated trip details (${Object.keys(req.body).join(', ')})`
+    );
+
+    res.json({
+      success: true,
+      message: 'Trip updated successfully',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/v1/trips/:id
+tripsRouter.delete('/:id', requireAuth, requirePermission('trips.delete'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const trip = await db.trips.findById(id);
+    if (!trip) {
+      res.status(404).json({ success: false, message: 'Trip not found' });
+      return;
+    }
+
+    await db.trips.deleteOne({ id });
+
+    await recordAudit(
+      req,
+      'trips',
+      'DELETE_TRIP',
+      id,
+      trip.tripNumber,
+      `Cancelled/deleted trip ${trip.tripNumber}`
+    );
+
+    res.json({
+      success: true,
+      message: 'Trip deleted successfully',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+

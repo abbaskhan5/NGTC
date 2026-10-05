@@ -10,7 +10,7 @@ export interface Permission {
 export interface Role {
   id: string;
   name: string;
-  code: string;
+  code: 'SUPER_ADMIN' | 'EMPLOYEE' | 'GENERAL_MANAGER' | 'FLEET_MANAGER' | 'OPERATIONS_MANAGER' | 'FINANCE_MANAGER' | 'HR_MANAGER' | 'DRIVER' | string;
   description: string;
   permissions: string[]; // array of "resource.action" or "*"
   isSystem?: boolean;
@@ -18,53 +18,77 @@ export interface Role {
 
 export const SYSTEM_PERMISSIONS: Permission[] = [
   // Dashboard
-  { id: 'p1', resource: 'dashboard', action: 'read', description: 'View executive dashboard' },
+  { id: 'p1', resource: 'dashboard', action: 'read', description: 'View operations and executive dashboard' },
   
-  // Vehicles
-  { id: 'p2', resource: 'vehicles', action: 'read', description: 'View vehicle registry and status' },
-  { id: 'p3', resource: 'vehicles', action: 'create', description: 'Register new vehicles' },
-  { id: 'p4', resource: 'vehicles', action: 'update', description: 'Update vehicle information and assignments' },
-  { id: 'p5', resource: 'vehicles', action: 'delete', description: 'Decommission vehicles' },
-
-  // Drivers
-  { id: 'p6', resource: 'drivers', action: 'read', description: 'View drivers and license records' },
-  { id: 'p7', resource: 'drivers', action: 'create', description: 'Onboard new drivers' },
-  { id: 'p8', resource: 'drivers', action: 'update', description: 'Update driver records and assignments' },
-  { id: 'p9', resource: 'drivers', action: 'delete', description: 'Remove or archive driver' },
-
-  // Contracts
-  { id: 'p10', resource: 'contracts', action: 'read', description: 'View client contracts' },
-  { id: 'p11', resource: 'contracts', action: 'create', description: 'Create enterprise contracts' },
-  { id: 'p12', resource: 'contracts', action: 'update', description: 'Amend contract terms and dates' },
-  { id: 'p13', resource: 'contracts', action: 'approve', description: 'Approve contracts' },
-
-  // Projects
-  { id: 'p14', resource: 'projects', action: 'read', description: 'View operational projects' },
-  { id: 'p15', resource: 'projects', action: 'create', description: 'Create operational projects' },
-  { id: 'p16', resource: 'projects', action: 'update', description: 'Manage project fleet and crew' },
-
-  // Trips & Routes
-  { id: 'p17', resource: 'trips', action: 'read', description: 'Track trips and schedules' },
-  { id: 'p18', resource: 'trips', action: 'create', description: 'Dispatch new trips' },
-  { id: 'p19', resource: 'trips', action: 'update', description: 'Update trip progress and status' },
+  // Users & Access Control
+  { id: 'p2', resource: 'users', action: 'read', description: 'View user accounts and access records' },
+  { id: 'p3', resource: 'users', action: 'create', description: 'Create employee and administrative user accounts' },
+  { id: 'p4', resource: 'users', action: 'update', description: 'Update user profiles, reset passwords, activate/deactivate' },
+  { id: 'p5', resource: 'users', action: 'delete', description: 'Remove or archive user accounts' },
+  { id: 'p6', resource: 'roles', action: 'manage', description: 'Configure system roles and permission sets' },
+  { id: 'p7', resource: 'permissions', action: 'manage', description: 'Assign and revoke granular system permissions' },
 
   // HR & Employees
-  { id: 'p20', resource: 'employees', action: 'read', description: 'View employee directory' },
-  { id: 'p21', resource: 'employees', action: 'create', description: 'Onboard employees' },
-  { id: 'p22', resource: 'employees', action: 'update', description: 'Manage employee records' },
+  { id: 'p8', resource: 'employees', action: 'read', description: 'View employee registry and personnel records' },
+  { id: 'p9', resource: 'employees', action: 'create', description: 'Onboard new company employees' },
+  { id: 'p10', resource: 'employees', action: 'update', description: 'Update employee job titles, salaries, departments' },
+  { id: 'p11', resource: 'employees', action: 'delete', description: 'Terminate or archive employee records' },
+
+  // Drivers
+  { id: 'p12', resource: 'drivers', action: 'read', description: 'View drivers and license records' },
+  { id: 'p13', resource: 'drivers', action: 'create', description: 'Onboard new transport drivers' },
+  { id: 'p14', resource: 'drivers', action: 'update', description: 'Update driver records and license status' },
+  { id: 'p15', resource: 'drivers', action: 'delete', description: 'Remove or decommission drivers' },
+
+  // Vehicles
+  { id: 'p16', resource: 'vehicles', action: 'read', description: 'View fleet registry and GPS status' },
+  { id: 'p17', resource: 'vehicles', action: 'create', description: 'Register new fleet vehicles' },
+  { id: 'p18', resource: 'vehicles', action: 'update', description: 'Update vehicle information and maintenance' },
+  { id: 'p19', resource: 'vehicles', action: 'delete', description: 'Decommission vehicles from active fleet' },
+
+  // Contracts
+  { id: 'p20', resource: 'contracts', action: 'read', description: 'View enterprise customer contracts' },
+  { id: 'p21', resource: 'contracts', action: 'create', description: 'Execute new customer agreements' },
+  { id: 'p22', resource: 'contracts', action: 'update', description: 'Amend contract values, dates, and SLA terms' },
+  { id: 'p23', resource: 'contracts', action: 'delete', description: 'Cancel or archive customer contracts' },
+  { id: 'p24', resource: 'contracts', action: 'approve', description: 'Formal executive approval for contracts' },
+
+  // Projects
+  { id: 'p25', resource: 'projects', action: 'read', description: 'View operational projects' },
+  { id: 'p26', resource: 'projects', action: 'create', description: 'Establish new client transport projects' },
+  { id: 'p27', resource: 'projects', action: 'update', description: 'Modify project scope, assigned fleet and staff' },
+  { id: 'p28', resource: 'projects', action: 'delete', description: 'Close and archive projects' },
+
+  // Routes
+  { id: 'p29', resource: 'routes', action: 'read', description: 'View transport routes and stop points' },
+  { id: 'p30', resource: 'routes', action: 'create', description: 'Design new bus and transport routes' },
+  { id: 'p31', resource: 'routes', action: 'update', description: 'Modify route stops, geofences, and paths' },
+  { id: 'p32', resource: 'routes', action: 'delete', description: 'Deactivate routes' },
+
+  // Trips
+  { id: 'p33', resource: 'trips', action: 'read', description: 'Track trips, dispatch logs, and schedules' },
+  { id: 'p34', resource: 'trips', action: 'create', description: 'Dispatch new operational trips' },
+  { id: 'p35', resource: 'trips', action: 'update', description: 'Update trip progress, delays, and incidents' },
+  { id: 'p36', resource: 'trips', action: 'delete', description: 'Cancel scheduled trips' },
 
   // Finance
-  { id: 'p23', resource: 'finance', action: 'read', description: 'View financial statements and invoices' },
-  { id: 'p24', resource: 'finance', action: 'create', description: 'Create invoices and expenses' },
-  { id: 'p25', resource: 'finance', action: 'approve', description: 'Approve payouts and invoices' },
+  { id: 'p37', resource: 'finance', action: 'read', description: 'View invoices, balance sheets, and revenue' },
+  { id: 'p38', resource: 'finance', action: 'create', description: 'Generate invoices and log operational expenses' },
+  { id: 'p39', resource: 'finance', action: 'update', description: 'Amend financial records and billing status' },
+  { id: 'p40', resource: 'finance', action: 'delete', description: 'Void invoices and payment records' },
+  { id: 'p41', resource: 'finance', action: 'approve', description: 'Authorize financial disbursements and invoice settlements' },
 
-  // Reports
-  { id: 'p26', resource: 'reports', action: 'read', description: 'Generate operations and compliance reports' },
+  // Payroll
+  { id: 'p42', resource: 'payroll', action: 'read', description: 'View staff payroll and compensation records' },
+  { id: 'p43', resource: 'payroll', action: 'create', description: 'Generate monthly payroll runs' },
+  { id: 'p44', resource: 'payroll', action: 'update', description: 'Adjust salary components and allowances' },
+  { id: 'p45', resource: 'payroll', action: 'delete', description: 'Cancel pending payroll runs' },
+  { id: 'p46', resource: 'payroll', action: 'approve', description: 'Approve salary disbursement batches' },
 
-  // Users & Settings
-  { id: 'p27', resource: 'users', action: 'manage', description: 'Manage user accounts and access' },
-  { id: 'p28', resource: 'settings', action: 'manage', description: 'Configure system settings and master data' },
-  { id: 'p29', resource: 'audit', action: 'read', description: 'View system audit logs' },
+  // Reports, Settings, Audit
+  { id: 'p47', resource: 'reports', action: 'read', description: 'Generate operations, safety, and compliance reports' },
+  { id: 'p48', resource: 'settings', action: 'manage', description: 'Configure ERP enterprise settings and master data' },
+  { id: 'p49', resource: 'auditLogs', action: 'read', description: 'Inspect system security and administrative audit trail' },
 ];
 
 export const DEFAULT_ROLES: Role[] = [
@@ -74,6 +98,26 @@ export const DEFAULT_ROLES: Role[] = [
     code: 'SUPER_ADMIN',
     description: 'Unrestricted enterprise administrative control across all branches and modules',
     permissions: ['*'],
+    isSystem: true,
+  },
+  {
+    id: 'role-employee',
+    name: 'Employee (Read-Only)',
+    code: 'EMPLOYEE',
+    description: 'Standard employee account with read-only access across permitted ERP operational modules',
+    permissions: [
+      'dashboard.read',
+      'employees.read',
+      'drivers.read',
+      'vehicles.read',
+      'contracts.read',
+      'projects.read',
+      'routes.read',
+      'trips.read',
+      'finance.read',
+      'payroll.read',
+      'reports.read',
+    ],
     isSystem: true,
   },
   {
@@ -93,7 +137,7 @@ export const DEFAULT_ROLES: Role[] = [
       'finance.read',
       'finance.approve',
       'reports.read',
-      'audit.read',
+      'auditLogs.read',
     ],
     isSystem: true,
   },
@@ -147,6 +191,7 @@ export const DEFAULT_ROLES: Role[] = [
       'finance.read',
       'finance.create',
       'finance.approve',
+      'payroll.read',
       'reports.read',
     ],
     isSystem: true,
@@ -164,6 +209,7 @@ export const DEFAULT_ROLES: Role[] = [
       'drivers.read',
       'drivers.create',
       'drivers.update',
+      'payroll.read',
       'reports.read',
     ],
     isSystem: true,

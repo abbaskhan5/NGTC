@@ -315,6 +315,9 @@ class Database {
   public notifications = new Collection<any>('notifications');
   public auditLogs = new Collection<any>('auditLogs');
   public documents = new Collection<any>('documents');
+  public employees = new Collection<any>('employees');
+  public payroll = new Collection<any>('payroll');
+  public settings = new Collection<any>('settings');
 
   public status: DbStatus = {
     connected: true,
@@ -341,6 +344,9 @@ class Database {
       this.notifications,
       this.auditLogs,
       this.documents,
+      this.employees,
+      this.payroll,
+      this.settings,
     ];
 
     this.setupIndexes();
@@ -348,6 +354,8 @@ class Database {
 
   private setupIndexes(): void {
     this.users.createIndex('email');
+    this.employees.createIndex('employeeId');
+    this.employees.createIndex('email');
     this.vehicles.createIndex('vehicleNumber');
     this.vehicles.createIndex('plateNumber');
     this.drivers.createIndex('driverCode');
@@ -355,6 +363,7 @@ class Database {
     this.contracts.createIndex('contractNumber');
     this.projects.createIndex('projectCode');
     this.trips.createIndex('tripNumber');
+    this.payroll.createIndex('month');
     this.notifications.createIndex('read');
     this.notifications.createIndex('severity');
     this.auditLogs.createIndex('module');

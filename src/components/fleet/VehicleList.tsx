@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Truck, Plus, Search, Filter, ShieldAlert, CheckCircle2, Clock, Wrench } from 'lucide-react';
 import { api } from '../../services/api.js';
 import { Vehicle } from '../../types/index.js';
+import { useAuth } from '../../context/AuthContext.js';
 
 export const VehicleList: React.FC = () => {
+  const { can } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -90,13 +92,19 @@ export const VehicleList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowRegisterModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-500 transition-colors shadow-md shadow-emerald-500/20"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Register New Vehicle</span>
-        </button>
+        {can('vehicles.create') ? (
+          <button
+            onClick={() => setShowRegisterModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-500 transition-colors shadow-md shadow-emerald-500/20"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Register New Vehicle</span>
+          </button>
+        ) : (
+          <div className="rounded-lg bg-slate-800/80 border border-slate-700 px-3 py-1.5 text-xs font-mono text-slate-400">
+            Read-Only Access
+          </div>
+        )}
       </div>
 
       {/* Filter and Search */}
@@ -221,16 +229,20 @@ export const VehicleList: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-end">
-                      <select
-                        value={v.status}
-                        onChange={(e) => handleStatusChange(v, e.target.value)}
-                        className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-emerald-500"
-                      >
-                        <option value="active">Set Active</option>
-                        <option value="idle">Set Idle</option>
-                        <option value="maintenance">Set Maintenance</option>
-                        <option value="inactive">Set Inactive</option>
-                      </select>
+                      {can('vehicles.update') ? (
+                        <select
+                          value={v.status}
+                          onChange={(e) => handleStatusChange(v, e.target.value)}
+                          className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-emerald-500"
+                        >
+                          <option value="active">Set Active</option>
+                          <option value="idle">Set Idle</option>
+                          <option value="maintenance">Set Maintenance</option>
+                          <option value="inactive">Set Inactive</option>
+                        </select>
+                      ) : (
+                        <span className="text-[11px] text-slate-500 font-mono">View Only</span>
+                      )}
                     </td>
                   </tr>
                 );

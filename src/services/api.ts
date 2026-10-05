@@ -36,8 +36,42 @@ async function request<T>(endpoint: string, options: RequestInit = {}, retries =
     throw new ApiError(netErr.message || 'Unable to reach ERP server backend', 0);
   }
 
+  // Handle Token Expiry
   if (response.status === 401 && !endpoint.includes('/auth/login')) {
+    // Attempt automatic refresh token exchange
+    const refreshToken = localStorage.getItem('ngtc_refresh_token');
+    if (refreshToken && !endpoint.includes('/auth/refresh')) {
+      try {
+        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          const newToken = refreshData.accessToken || refreshData.token;
+          if (newToken) {
+            localStorage.setItem('ngtc_token', newToken);
+            if (refreshData.refreshToken) {
+              localStorage.setItem('ngtc_refresh_token', refreshData.refreshToken);
+            }
+            // Retry request with new token
+            return request<T>(endpoint, {
+              ...options,
+              headers: {
+                ...(options.headers || {}),
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${newToken}`,
+              },
+            }, 0);
+          }
+        }
+      } catch (e) {
+        // Refresh failed, proceed to wipe
+      }
+    }
     localStorage.removeItem('ngtc_token');
+    localStorage.removeItem('ngtc_refresh_token');
   }
 
   const data = await response.json().catch(() => ({}));
@@ -52,17 +86,26 @@ async function request<T>(endpoint: string, options: RequestInit = {}, retries =
 export const api = {
   // System
   getSystemStatus: () =>
-    request<{ database: any; time: string; nodeEnv: string }>('/system/status'),
+    request<{ database: any; time: string; nodeEnv: string; storageProvider?: string }>('/system/status'),
 
   // Auth
   login: (credentials: { email: string; password: string }) =>
-    request<{ token: string; user: any; permissions: string[] }>('/auth/login', {
+    request<{ token: string; accessToken: string; refreshToken: string; user: any; permissions: string[] }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     }),
+
+  refreshToken: (refreshToken: string) =>
+    request<{ accessToken: string; refreshToken: string; token: string }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }),
+
+  logout: () =>
+    request('/auth/logout', { method: 'POST' }),
   
   switchDemo: (roleCode: string) =>
-    request<{ token: string; user: any; permissions: string[] }>('/auth/switch-demo', {
+    request<{ token: string; accessToken: string; refreshToken: string; user: any; permissions: string[] }>('/auth/switch-demo', {
       method: 'POST',
       body: JSON.stringify({ roleCode }),
     }),
@@ -104,15 +147,42 @@ export const api = {
     return request<{ items: any[]; total: number }>(`/audit-logs?${query.toString()}`);
   },
 
-  // Users
+  // Users (Super Admin Only)
   getUsers: () =>
-    request<{ users: any[]; roles: any[]; branches: any[] }>('/users'),
+    request<{ users: any[]; roles: any[]; branches: any[]; employees?: any[] }>('/users'),
 
   createUser: (data: any) =>
     request('/users', { method: 'POST', body: JSON.stringify(data) }),
 
   updateUser: (id: string, data: any) =>
     request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteUser: (id: string) =>
+    request(`/users/${id}`, { method: 'DELETE' }),
+
+  resetUserPassword: (id: string, newPassword?: string) =>
+    request(`/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ newPassword }) }),
+
+  updateUserStatus: (id: string, status: string) =>
+    request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  // Employees Directory
+  getEmployees: (params?: { department?: string; status?: string; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.department) query.append('department', params.department);
+    if (params?.status) query.append('status', params.status);
+    if (params?.search) query.append('search', params.search);
+    return request<{ items: any[]; total: number }>(`/employees?${query.toString()}`);
+  },
+
+  createEmployee: (data: any) =>
+    request('/employees', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateEmployee: (id: string, data: any) =>
+    request(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteEmployee: (id: string) =>
+    request(`/employees/${id}`, { method: 'DELETE' }),
 
   // Vehicles
   getVehicles: (params?: { status?: string; vehicleType?: string; branchId?: string; search?: string }) => {
@@ -130,6 +200,9 @@ export const api = {
   updateVehicle: (id: string, data: any) =>
     request(`/vehicles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
+  deleteVehicle: (id: string) =>
+    request(`/vehicles/${id}`, { method: 'DELETE' }),
+
   // Drivers
   getDrivers: (params?: { status?: string; search?: string; branchId?: string }) => {
     const query = new URLSearchParams();
@@ -141,6 +214,12 @@ export const api = {
 
   createDriver: (data: any) =>
     request('/drivers', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateDriver: (id: string, data: any) =>
+    request(`/drivers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteDriver: (id: string) =>
+    request(`/drivers/${id}`, { method: 'DELETE' }),
 
   // Contracts
   getContracts: (params?: { status?: string; contractType?: string; search?: string }) => {
@@ -154,6 +233,15 @@ export const api = {
   createContract: (data: any) =>
     request('/contracts', { method: 'POST', body: JSON.stringify(data) }),
 
+  updateContract: (id: string, data: any) =>
+    request(`/contracts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  approveContract: (id: string) =>
+    request(`/contracts/${id}/approve`, { method: 'POST' }),
+
+  deleteContract: (id: string) =>
+    request(`/contracts/${id}`, { method: 'DELETE' }),
+
   // Trips
   getTrips: (params?: { status?: string; search?: string }) => {
     const query = new URLSearchParams();
@@ -162,10 +250,55 @@ export const api = {
     return request<{ items: any[]; total: number }>(`/trips?${query.toString()}`);
   },
 
+  createTrip: (data: any) =>
+    request('/trips', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateTrip: (id: string, data: any) =>
+    request(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
   updateTripStatus: (id: string, data: any) =>
     request(`/trips/${id}/status`, { method: 'POST', body: JSON.stringify(data) }),
 
-  // Search
+  deleteTrip: (id: string) =>
+    request(`/trips/${id}`, { method: 'DELETE' }),
+
+  // Payroll
+  getPayroll: () =>
+    request<{ items: any[]; total: number }>('/payroll'),
+
+  createPayroll: (data: any) =>
+    request('/payroll', { method: 'POST', body: JSON.stringify(data) }),
+
+  updatePayroll: (id: string, data: any) =>
+    request(`/payroll/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  approvePayroll: (id: string) =>
+    request(`/payroll/${id}/approve`, { method: 'POST' }),
+
+  deletePayroll: (id: string) =>
+    request(`/payroll/${id}`, { method: 'DELETE' }),
+
+  // Settings
+  getSettings: () =>
+    request<any>('/settings'),
+
+  updateSettings: (data: any) =>
+    request('/settings', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Roles & Permissions
+  getRoles: () =>
+    request<{ roles: any[]; permissions: any[] }>('/roles'),
+
+  createRole: (data: any) =>
+    request('/roles', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateRole: (id: string, data: any) =>
+    request(`/roles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteRole: (id: string) =>
+    request(`/roles/${id}`, { method: 'DELETE' }),
+
+  // Global Search
   searchGlobal: (query: string) =>
     request<{ vehicles: any[]; drivers: any[]; contracts: any[]; trips: any[]; invoices: any[] }>(
       `/search?q=${encodeURIComponent(query)}`

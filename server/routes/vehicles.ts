@@ -142,3 +142,33 @@ vehiclesRouter.put('/:id', requireAuth, requirePermission('vehicles.update'), as
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// DELETE /api/v1/vehicles/:id
+vehiclesRouter.delete('/:id', requireAuth, requirePermission('vehicles.delete'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const vehicle = await db.vehicles.findById(id);
+    if (!vehicle) {
+      res.status(404).json({ success: false, message: 'Vehicle not found' });
+      return;
+    }
+
+    await db.vehicles.deleteOne({ id });
+
+    await recordAudit(
+      req,
+      'vehicles',
+      'DELETE_VEHICLE',
+      id,
+      vehicle.vehicleNumber,
+      `Decommissioned vehicle ${vehicle.vehicleNumber} (${vehicle.plateNumber})`
+    );
+
+    res.json({
+      success: true,
+      message: 'Vehicle deleted successfully',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});

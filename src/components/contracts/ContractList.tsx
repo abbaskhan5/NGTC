@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Search, Filter, Calendar, Building, DollarSign } from 'lucide-react';
 import { api } from '../../services/api.js';
 import { Contract } from '../../types/index.js';
+import { useAuth } from '../../context/AuthContext.js';
 
 export const ContractList: React.FC = () => {
+  const { can } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -75,13 +77,19 @@ export const ContractList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-500 transition-colors shadow-md shadow-emerald-500/20"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Enterprise Contract</span>
-        </button>
+        {can('contracts.create') ? (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-500 transition-colors shadow-md shadow-emerald-500/20"
+          >
+            <Plus className="h-4 w-4" />
+            <span>New Enterprise Contract</span>
+          </button>
+        ) : (
+          <div className="rounded-lg bg-slate-800/80 border border-slate-700 px-3 py-1.5 text-xs font-mono text-slate-400">
+            Read-Only Access
+          </div>
+        )}
       </div>
 
       {/* Search and Filters */}

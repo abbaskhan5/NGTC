@@ -93,3 +93,96 @@ contractsRouter.post('/', requireAuth, requirePermission('contracts.create'), as
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// PUT /api/v1/contracts/:id
+contractsRouter.put('/:id', requireAuth, requirePermission('contracts.update'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const contract = await db.contracts.findById(id);
+    if (!contract) {
+      res.status(404).json({ success: false, message: 'Contract not found' });
+      return;
+    }
+
+    const updated = await db.contracts.updateOne({ id }, req.body);
+
+    await recordAudit(
+      req,
+      'contracts',
+      'UPDATE_CONTRACT',
+      id,
+      contract.contractNumber,
+      `Updated contract terms (${Object.keys(req.body).join(', ')})`
+    );
+
+    res.json({
+      success: true,
+      message: 'Contract updated successfully',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/v1/contracts/:id/approve
+contractsRouter.post('/:id/approve', requireAuth, requirePermission('contracts.approve'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const contract = await db.contracts.findById(id);
+    if (!contract) {
+      res.status(404).json({ success: false, message: 'Contract not found' });
+      return;
+    }
+
+    const updated = await db.contracts.updateOne({ id }, { status: 'active', approvedAt: new Date().toISOString() });
+
+    await recordAudit(
+      req,
+      'contracts',
+      'APPROVE_CONTRACT',
+      id,
+      contract.contractNumber,
+      `Approved contract ${contract.contractNumber}`
+    );
+
+    res.json({
+      success: true,
+      message: 'Contract approved successfully',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/v1/contracts/:id
+contractsRouter.delete('/:id', requireAuth, requirePermission('contracts.delete'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const contract = await db.contracts.findById(id);
+    if (!contract) {
+      res.status(404).json({ success: false, message: 'Contract not found' });
+      return;
+    }
+
+    await db.contracts.deleteOne({ id });
+
+    await recordAudit(
+      req,
+      'contracts',
+      'DELETE_CONTRACT',
+      id,
+      contract.contractNumber,
+      `Cancelled/deleted contract ${contract.contractNumber}`
+    );
+
+    res.json({
+      success: true,
+      message: 'Contract removed successfully',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+

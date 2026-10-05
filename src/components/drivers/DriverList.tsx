@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { UserCheck, Plus, Search, Filter, ShieldAlert, Award, Phone } from 'lucide-react';
 import { api } from '../../services/api.js';
 import { Driver } from '../../types/index.js';
+import { useAuth } from '../../context/AuthContext.js';
 
 export const DriverList: React.FC = () => {
+  const { can } = useAuth();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,13 +73,19 @@ export const DriverList: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowOnboardModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-500 transition-colors shadow-md shadow-emerald-500/20"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Onboard New Driver</span>
-        </button>
+        {can('drivers.create') ? (
+          <button
+            onClick={() => setShowOnboardModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-500 transition-colors shadow-md shadow-emerald-500/20"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Onboard New Driver</span>
+          </button>
+        ) : (
+          <div className="rounded-lg bg-slate-800/80 border border-slate-700 px-3 py-1.5 text-xs font-mono text-slate-400">
+            Read-Only Access
+          </div>
+        )}
       </div>
 
       {/* Search and Filters */}

@@ -109,3 +109,65 @@ driversRouter.post('/', requireAuth, requirePermission('drivers.create'), async 
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// PUT /api/v1/drivers/:id
+driversRouter.put('/:id', requireAuth, requirePermission('drivers.update'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const driver = await db.drivers.findById(id);
+    if (!driver) {
+      res.status(404).json({ success: false, message: 'Driver not found' });
+      return;
+    }
+
+    const updated = await db.drivers.updateOne({ id }, req.body);
+
+    await recordAudit(
+      req,
+      'drivers',
+      'UPDATE_DRIVER',
+      id,
+      driver.name,
+      `Updated driver profile (${Object.keys(req.body).join(', ')})`
+    );
+
+    res.json({
+      success: true,
+      message: 'Driver updated successfully',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/v1/drivers/:id
+driversRouter.delete('/:id', requireAuth, requirePermission('drivers.delete'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const driver = await db.drivers.findById(id);
+    if (!driver) {
+      res.status(404).json({ success: false, message: 'Driver not found' });
+      return;
+    }
+
+    await db.drivers.deleteOne({ id });
+
+    await recordAudit(
+      req,
+      'drivers',
+      'DELETE_DRIVER',
+      id,
+      driver.name,
+      `Decommissioned driver ${driver.name} (${driver.driverCode})`
+    );
+
+    res.json({
+      success: true,
+      message: 'Driver deleted successfully',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
